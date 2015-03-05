@@ -117,8 +117,12 @@ class PLYLoader :public Loader
 	int header;
 	vector<GLfloat>p_vertices;
 	vector<GLfloat>p_indices;
+	vector<GLfloat>p_normals;
+	vector<GLfloat>p_colors;
     static int vertex_cb(p_ply_argument arg);
 	static int face_cb(p_ply_argument arg);
+	static int normal_cb(p_ply_argument arg);
+	static int color_cb(p_ply_argument arg);
 
 public:
 	PLYLoader()
