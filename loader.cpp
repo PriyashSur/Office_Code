@@ -73,6 +73,8 @@ void OBJLoader::load(string filename)
 
 static vector<GLfloat>vert;
 static vector<GLfloat>indices;
+static vector<GLfloat>normals;
+static vector<GLfloat>colors;
 int PLYLoader::vertex_cb(p_ply_argument arg)
 {
 	long eol;
@@ -108,6 +110,23 @@ int PLYLoader::face_cb(p_ply_argument arg)
 	return 1;
 }
 
+int PLYLoader::normal_cb(p_ply_argument arg)
+{
+	long eol;
+	ply_get_argument_user_data(arg, NULL, &eol);
+	normals.push_back(ply_get_argument_value(arg));
+	return 1;
+}
+
+
+int PLYLoader::color_cb(p_ply_argument arg)
+{
+	long eol;
+	ply_get_argument_user_data(arg, NULL, &eol);
+	colors.push_back(ply_get_argument_value(arg)/255);
+	return 1;
+}
+
 void PLYLoader::load(string filename)
 {
 	ply=ply_open(filename.c_str(), NULL, 0, NULL);
@@ -117,18 +136,22 @@ void PLYLoader::load(string filename)
 	int nvertices = ply_set_read_cb(ply, "vertex", "x", vertex_cb, NULL, 0);
 	ply_set_read_cb(ply, "vertex", "y", vertex_cb, NULL, 0);
 	ply_set_read_cb(ply, "vertex", "z", vertex_cb, NULL, 1);
-	/*ply_set_read_cb(ply, "vertex", "nx", vertex_cb, NULL, 0);
-	ply_set_read_cb(ply, "vertex", "ny", vertex_cb, NULL, 0);
-	ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 0);
-	ply_set_read_cb(ply, "vertex", "red", vertex_cb, NULL, 0);
-	ply_set_read_cb(ply, "vertex", "green", vertex_cb, NULL, 0);
-	ply_set_read_cb(ply, "vertex", "blue", vertex_cb, NULL, 1);*/
+	ply_set_read_cb(ply, "vertex", "nx", normal_cb, NULL, 0);
+	ply_set_read_cb(ply, "vertex", "ny", normal_cb, NULL, 0);
+	ply_set_read_cb(ply, "vertex", "nz", normal_cb, NULL, 1);
+	ply_set_read_cb(ply, "vertex", "red", color_cb, NULL, 0);
+	ply_set_read_cb(ply, "vertex", "green", color_cb, NULL, 0);
+	ply_set_read_cb(ply, "vertex", "blue", color_cb, NULL, 1);
 	int ntriangles = ply_set_read_cb(ply, "face", "vertex_indices", face_cb, NULL, 0);
 	if (!ply_read(ply))return;
 	p_vertices = vert;
 	p_indices = indices;
+	p_normals = normals;
+	p_colors = colors;
 	vert.clear();
 	indices.clear();
+	normals.clear();
+	colors.clear();
 	
 }
 
@@ -136,16 +159,26 @@ void PLYLoader::load(string filename)
 
 void PLYLoader::render()
 {
-	glLoadIdentity();
-	glScalef(0.004f, 0.004f, 0.004f);
-	glBegin(GL_TRIANGLES);
-	for (int i = 0; i < p_vertices.size(); i=i+3)
-	{
-		glVertex3f(p_vertices[i], p_vertices[i + 1], p_vertices[i + 2]);
-		
-	}
-    glEnd();
 	
+	
+	glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+
+	glVertexPointer(3, GL_FLOAT,0, &p_vertices[0]);
+	glNormalPointer(GL_FLOAT, 0, &p_normals[0]);
+	glColorPointer(3, GL_FLOAT, 0, &p_colors[0]);
+
+	glPushMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	gluLookAt(0.5, 0.5, 0.5, 5.0, 5.0, 5.0, 20, -40, 100);
+	
+	glScalef(0.006, 0.006, 0.006);
+	glDrawArrays(GL_QUADS, 0, p_vertices.size()/3);
+	glPopMatrix();
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
 }
 
 
